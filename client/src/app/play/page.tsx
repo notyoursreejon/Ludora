@@ -113,7 +113,9 @@ function PlayContent() {
   useEffect(() => {
     if (!isOnline) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4000';
+    const envUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.NEXT_PUBLIC_WS_URL;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = envUrl ? envUrl.replace(/^http/, 'ws') : `${protocol}//${window.location.hostname}:4000`;
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {

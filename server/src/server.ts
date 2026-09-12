@@ -27,6 +27,10 @@ export function createGameServer() {
   app.use(cors());
   app.use(express.json());
 
+  app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', service: 'ludora-game-server', timestamp: Date.now() });
+  });
+
   // In-memory room registry: code -> GameRoom
   const rooms: Map<string, GameRoom> = new Map();
   // In-memory Ludo room registry: code -> LudoGameRoom

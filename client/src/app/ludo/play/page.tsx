@@ -101,8 +101,9 @@ function LudoPlayContent() {
     }
 
     // Online Multiplayer WebSocket Connection
+    const envUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.NEXT_PUBLIC_WS_URL;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = process.env.NEXT_PUBLIC_SERVER_URL || `${protocol}//${window.location.hostname}:4000`;
+    const host = envUrl ? envUrl.replace(/^http/, 'ws') : `${protocol}//${window.location.hostname}:4000`;
     const socket = new WebSocket(host);
 
     socket.onopen = () => {
