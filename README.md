@@ -1,5 +1,12 @@
 # 🎲👑 Ludora: Modern Online Multiplayer Ludo & Board Games Platform
 
+[![Vercel Deployment](https://img.shields.io/badge/Deployed_on-Vercel-black?style=for-the-badge&logo=vercel)](https://ludora-pi.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-ludora--pi.vercel.app-blue?style=for-the-badge)](https://ludora-pi.vercel.app)
+
+> 🚀 **Live Production Application**: [**https://ludora-pi.vercel.app**](https://ludora-pi.vercel.app)  
+> 🎲 **Ludo Arena**: [https://ludora-pi.vercel.app/ludo](https://ludora-pi.vercel.app/ludo)  
+> 🐍 **Snakes & Ladders**: [https://ludora-pi.vercel.app/](https://ludora-pi.vercel.app/)
+
 **Ludora** is a production-quality, responsive, server-authoritative multiplayer board game platform supporting **2 to 10 players**, single-player vs AI opponents with multiple heuristics and difficulty levels, private rooms with 6-character codes, shareable links, real-time WebSockets synchronization, Battle Ludo power-up mechanics, Web Audio API sound synthesis, and full match replays.
 
 ### Available Games:
