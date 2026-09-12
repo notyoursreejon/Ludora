@@ -1,0 +1,17 @@
+{
+  "name": "@snakes/shared",
+  "version": "1.0.0",
+  "description": "Shared contracts, DTOs, and schemas for Snakes & Ladders",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
