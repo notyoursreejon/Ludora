@@ -9,9 +9,15 @@ import {
   UpdateSettingsSchema,
   UpdateProfileSchema,
   QuickReactionSchema,
+  LudoCreateRoomSchema,
+  LudoJoinRoomSchema,
+  LudoRollDiceSchema,
+  LudoSelectTokenSchema,
+  LudoUsePowerUpSchema,
   WsEnvelope
 } from '@snakes/shared';
 import { GameRoom } from './room.js';
+import { LudoGameRoom } from './ludoRoom.js';
 import { sessionManager } from './session.js';
 import { matchmakingQueue } from './matchmaking.js';
 import { db } from './db.js';
@@ -23,8 +29,10 @@ export function createGameServer() {
 
   // In-memory room registry: code -> GameRoom
   const rooms: Map<string, GameRoom> = new Map();
-  // Socket to context lookup: ws -> { playerId, roomCode, lastMessageAt }
-  const socketMetadata: Map<WebSocket, { playerId: string; roomCode?: string; lastMessageAt: number }> = new Map();
+  // In-memory Ludo room registry: code -> LudoGameRoom
+  const ludoRooms: Map<string, LudoGameRoom> = new Map();
+  // Socket to context lookup: ws -> { playerId, roomCode, gameType, lastMessageAt }
+  const socketMetadata: Map<WebSocket, { playerId: string; roomCode?: string; gameType?: 'snakes' | 'ludo'; lastMessageAt: number }> = new Map();
 
   function generateRoomCode(): string {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -34,7 +42,7 @@ export function createGameServer() {
       for (let i = 0; i < 6; i++) {
         code += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-    } while (rooms.has(code));
+    } while (rooms.has(code) || ludoRooms.has(code));
     return code;
   }
 
@@ -43,7 +51,8 @@ export function createGameServer() {
     res.json({
       status: 'ok',
       uptime: process.uptime(),
-      activeRooms: rooms.size,
+      activeSnakesRooms: rooms.size,
+      activeLudoRooms: ludoRooms.size,
       timestamp: Date.now()
     });
   });
@@ -53,6 +62,15 @@ export function createGameServer() {
     const room = rooms.get(code);
     if (!room) {
       return res.status(404).json({ error: 'Room not found' });
+    }
+    res.json(room.toDTO());
+  });
+
+  app.get('/api/ludo/rooms/:code', (req, res) => {
+    const code = req.params.code.toUpperCase();
+    const room = ludoRooms.get(code);
+    if (!room) {
+      return res.status(404).json({ error: 'Ludo room not found' });
     }
     res.json(room.toDTO());
   });
@@ -94,15 +112,25 @@ export function createGameServer() {
     ws.on('close', () => {
       const meta = socketMetadata.get(ws);
       if (meta && meta.roomCode) {
-        const room = rooms.get(meta.roomCode);
-        if (room) {
-          room.removePlayer(meta.playerId);
-          if (room.players.length === 0 && room.spectators.length === 0) {
-            room.destroy();
-            rooms.delete(meta.roomCode);
+        if (meta.gameType === 'ludo') {
+          const ludoRoom = ludoRooms.get(meta.roomCode);
+          if (ludoRoom) {
+            ludoRoom.removePlayer(meta.playerId);
+            if (ludoRoom.connections.size === 0 && ludoRoom.initialPlayers.length === 0) {
+              ludoRooms.delete(meta.roomCode);
+            }
           }
+        } else {
+          const room = rooms.get(meta.roomCode);
+          if (room) {
+            room.removePlayer(meta.playerId);
+            if (room.players.length === 0 && room.spectators.length === 0) {
+              room.destroy();
+              rooms.delete(meta.roomCode);
+            }
+          }
+          matchmakingQueue.leave(meta.playerId);
         }
-        matchmakingQueue.leave(meta.playerId);
       }
       socketMetadata.delete(ws);
     });
@@ -110,7 +138,7 @@ export function createGameServer() {
 
   function handleClientMessage(
     ws: WebSocket,
-    meta: { playerId: string; roomCode?: string },
+    meta: { playerId: string; roomCode?: string; gameType?: 'snakes' | 'ludo' },
     envelope: WsEnvelope
   ): void {
     const { type, payload } = envelope;
@@ -294,6 +322,162 @@ export function createGameServer() {
         break;
       }
 
+      // ==========================================
+      // LUDO WEBSOCKET HANDLERS
+      // ==========================================
+
+      case 'LUDO_ROOM_CREATE': {
+        const parsed = LudoCreateRoomSchema.safeParse(payload);
+        if (!parsed.success) {
+          return sendError(ws, 'INVALID_PAYLOAD', 'Invalid Ludo room creation payload');
+        }
+
+        const code = generateRoomCode();
+        const hostId = meta.playerId;
+        const ludoRoom = new LudoGameRoom(code, hostId, parsed.data.settings);
+        ludoRooms.set(code, ludoRoom);
+        meta.roomCode = code;
+        meta.gameType = 'ludo';
+
+        sendSuccess(ws, 'LUDO_SESSION_INIT', {
+          playerId: hostId,
+          roomCode: code,
+          isHost: true
+        });
+
+        ludoRoom.addPlayer(hostId, parsed.data.playerName, parsed.data.avatar, parsed.data.color);
+        ludoRoom.registerSocket(hostId, ws);
+        break;
+      }
+
+      case 'LUDO_ROOM_JOIN': {
+        const parsed = LudoJoinRoomSchema.safeParse(payload);
+        if (!parsed.success) {
+          return sendError(ws, 'INVALID_PAYLOAD', 'Invalid Ludo room join payload');
+        }
+
+        const code = parsed.data.roomCode.toUpperCase();
+        const ludoRoom = ludoRooms.get(code);
+        if (!ludoRoom) {
+          return sendError(ws, 'ROOM_NOT_FOUND', `Ludo room ${code} does not exist`);
+        }
+
+        meta.roomCode = code;
+        meta.gameType = 'ludo';
+
+        const joinResult = ludoRoom.addPlayer(
+          meta.playerId,
+          parsed.data.playerName,
+          parsed.data.avatar,
+          parsed.data.preferredColor
+        );
+
+        if (!joinResult.success) {
+          return sendError(ws, 'JOIN_FAILED', joinResult.error || 'Failed to join Ludo room');
+        }
+
+        ludoRoom.registerSocket(meta.playerId, ws);
+
+        sendSuccess(ws, 'LUDO_SESSION_INIT', {
+          playerId: meta.playerId,
+          roomCode: code,
+          isHost: meta.playerId === ludoRoom.hostId
+        });
+        break;
+      }
+
+      case 'LUDO_ADD_AI_BOT': {
+        if (!meta.roomCode) return sendError(ws, 'NOT_IN_ROOM', 'Join a room first');
+        const ludoRoom = ludoRooms.get(meta.roomCode);
+        if (!ludoRoom || ludoRoom.hostId !== meta.playerId) {
+          return sendError(ws, 'FORBIDDEN', 'Only room host can add AI bots');
+        }
+
+        const personality = payload?.personality || 'strategist';
+        const difficulty = payload?.difficulty || 'normal';
+        const botName = payload?.name || `Bot (${personality})`;
+        const botId = `bot_${uuidv4().substring(0, 6)}`;
+        const botAvatar = payload?.avatar || '🤖';
+
+        const res = ludoRoom.addPlayer(botId, botName, botAvatar, undefined, true, difficulty, personality);
+        if (!res.success) {
+          sendError(ws, 'AI_ADD_FAILED', res.error || 'Could not add AI bot');
+        }
+        break;
+      }
+
+      case 'LUDO_GAME_START': {
+        if (!meta.roomCode) return;
+        const ludoRoom = ludoRooms.get(meta.roomCode);
+        if (!ludoRoom || ludoRoom.hostId !== meta.playerId) {
+          return sendError(ws, 'FORBIDDEN', 'Only host can start the game');
+        }
+
+        const res = ludoRoom.startGame();
+        if (!res.success) {
+          sendError(ws, 'CANNOT_START', res.error || 'Cannot start game');
+        }
+        break;
+      }
+
+      case 'LUDO_ROLL_DICE': {
+        if (!meta.roomCode) return;
+        const ludoRoom = ludoRooms.get(meta.roomCode);
+        if (!ludoRoom) return;
+
+        const parsed = LudoRollDiceSchema.safeParse(payload);
+        const reqId = parsed.success ? parsed.data.requestId : uuidv4();
+        const res = ludoRoom.handleRollDice(meta.playerId, reqId);
+        if (!res.success) {
+          sendError(ws, 'INVALID_ROLL', res.error || 'Cannot roll dice');
+        }
+        break;
+      }
+
+      case 'LUDO_SELECT_TOKEN': {
+        if (!meta.roomCode) return;
+        const ludoRoom = ludoRooms.get(meta.roomCode);
+        if (!ludoRoom) return;
+
+        const parsed = LudoSelectTokenSchema.safeParse(payload);
+        if (!parsed.success) {
+          return sendError(ws, 'INVALID_TOKEN_SELECTION', 'Missing or invalid token selection');
+        }
+
+        const res = ludoRoom.handleSelectToken(meta.playerId, parsed.data.tokenId, parsed.data.requestId);
+        if (!res.success) {
+          sendError(ws, 'INVALID_MOVE', res.error || 'Cannot move selected token');
+        }
+        break;
+      }
+
+      case 'LUDO_USE_POWERUP': {
+        if (!meta.roomCode) return;
+        const ludoRoom = ludoRooms.get(meta.roomCode);
+        if (!ludoRoom) return;
+
+        const parsed = LudoUsePowerUpSchema.safeParse(payload);
+        if (!parsed.success) {
+          return sendError(ws, 'INVALID_POWERUP', 'Invalid power-up request');
+        }
+
+        const res = ludoRoom.handleUsePowerUp(meta.playerId, parsed.data.powerUp, parsed.data.targetTokenId);
+        if (!res.success) {
+          sendError(ws, 'POWERUP_FAILED', res.error || 'Failed to use power-up');
+        }
+        break;
+      }
+
+      case 'LUDO_SEND_REACTION': {
+        if (!meta.roomCode) return;
+        const ludoRoom = ludoRooms.get(meta.roomCode);
+        if (!ludoRoom) return;
+
+        const emoji = payload?.emoji || '🎲';
+        ludoRoom.sendReaction(meta.playerId, emoji);
+        break;
+      }
+
       default:
         sendError(ws, 'UNKNOWN_TYPE', `Unrecognized message type: ${type}`);
     }
@@ -311,17 +495,17 @@ export function createGameServer() {
     }
   }
 
-  return { app, server, wss, rooms };
+  return { app, server, wss, rooms, ludoRooms };
 }
 
 // Default instance for standalone server execution
-const { app, server, rooms } = createGameServer();
+const { app, server, rooms, ludoRooms } = createGameServer();
 const PORT = process.env.PORT || 4000;
 
 if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
   server.listen(PORT, () => {
-    console.log(`[Game Server] Authoritative Snakes & Ladders Server running on port ${PORT}`);
+    console.log(`[Game Server] Authoritative Snakes & Ladders & Ludo Server running on port ${PORT}`);
   });
 }
 
-export { app, server, rooms };
+export { app, server, rooms, ludoRooms };

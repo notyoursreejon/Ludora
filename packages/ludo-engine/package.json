@@ -1,0 +1,19 @@
+{
+  "name": "@snakes/ludo-engine",
+  "version": "1.0.0",
+  "description": "Pure framework-agnostic Ludo game engine supporting 2 to 10 players",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@snakes/shared": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

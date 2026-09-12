@@ -14,6 +14,7 @@
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:engine": "npm run test --workspace=@snakes/engine",
+    "test:ludo": "npm run test --workspace=@snakes/ludo-engine",
     "test:server": "npm run test --workspace=server"
   },
   "keywords": [
