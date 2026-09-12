@@ -20,6 +20,7 @@ import { Lobby } from '@/components/Lobby';
 import { Reactions } from '@/components/Reactions';
 import { ResultsModal } from '@/components/ResultsModal';
 import { ReplayViewer } from '@/components/ReplayViewer';
+import { ProfileCustomizerModal } from '@/components/ProfileCustomizerModal';
 import { sound } from '@/lib/sound';
 
 function PlayContent() {
@@ -49,6 +50,7 @@ function PlayContent() {
   const [isRolling, setIsRolling] = useState(false);
   const [activeReactions, setActiveReactions] = useState<{ id: string; emoji: string; playerName: string; color: string }[]>([]);
   const [showReplay, setShowReplay] = useState(false);
+  const [showInGameProfileModal, setShowInGameProfileModal] = useState(false);
   const [isSpectator, setIsSpectator] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -59,6 +61,51 @@ function PlayContent() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
+
+  // Hydrate saved profile from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem('snakes_player_name');
+      const savedAvatar = localStorage.getItem('snakes_player_avatar');
+      const savedColor = localStorage.getItem('snakes_player_color');
+      if (savedName) setPlayerName(savedName);
+      if (savedAvatar) setMyAvatar(savedAvatar);
+      if (savedColor) setMyColor(savedColor);
+    }
+  }, []);
+
+  const handleUpdateProfile = (profile: { name: string; avatar: string; color: string }) => {
+    setPlayerName(profile.name);
+    setMyAvatar(profile.avatar);
+    setMyColor(profile.color);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('snakes_player_name', profile.name);
+      localStorage.setItem('snakes_player_avatar', profile.avatar);
+      localStorage.setItem('snakes_player_color', profile.color);
+    }
+
+    if (isOnline && ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'PLAYER_UPDATE_PROFILE',
+        timestamp: Date.now(),
+        payload: profile
+      }));
+    } else if (gameState) {
+      setGameState(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          players: prev.players.map(p =>
+            p.id === myPlayerId
+              ? { ...p, name: profile.name, avatar: profile.avatar, color: profile.color }
+              : p
+          )
+        };
+      });
+    }
+    showToast(`Profile updated: ${profile.avatar} ${profile.name}`);
+  };
+
 
   // ============================================================
   // 1. ONLINE MULTIPLAYER WEBSOCKET LIFECYCLE
@@ -490,6 +537,16 @@ function PlayContent() {
         </div>
 
         <div className="flex items-center gap-2.5">
+          {/* Profile Edit Trigger */}
+          <button
+            onClick={() => setShowInGameProfileModal(true)}
+            className="px-3 py-1.5 bg-slate-900/80 hover:bg-slate-800 text-slate-200 text-xs font-bold rounded-xl border border-slate-700/60 shadow-sm transition-all flex items-center gap-1.5"
+            title="Edit your name and avatar"
+          >
+            <span>{myAvatar}</span>
+            <span className="hidden sm:inline">{playerName}</span>
+          </button>
+
           {eventLog.length > 0 && (
             <button
               onClick={() => setShowReplay(true)}
@@ -507,6 +564,16 @@ function PlayContent() {
           </button>
         </div>
       </header>
+
+      {/* Profile Customizer Modal */}
+      <ProfileCustomizerModal
+        isOpen={showInGameProfileModal}
+        currentName={playerName}
+        currentAvatar={myAvatar}
+        currentColor={myColor}
+        onSave={handleUpdateProfile}
+        onClose={() => setShowInGameProfileModal(false)}
+      />
 
       {/* Main Play View */}
       <main className="flex-1 flex flex-col items-center justify-center p-3 md:p-6 max-w-6xl mx-auto w-full">
@@ -544,6 +611,7 @@ function PlayContent() {
             onUpdateSettings={(settings) => {
               ws?.send(JSON.stringify({ type: 'HOST_UPDATE_SETTINGS', timestamp: Date.now(), payload: { settings } }));
             }}
+            onUpdateProfile={handleUpdateProfile}
             onAddAI={(personality) => {
               ws?.send(JSON.stringify({ type: 'ADD_AI_BOT', timestamp: Date.now(), payload: { personality } }));
             }}
@@ -555,6 +623,7 @@ function PlayContent() {
             }}
             onLeaveRoom={() => router.push('/')}
           />
+
         ) : gameState ? (
           <div className="w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6">
             {/* Left: The Board */}
@@ -607,8 +676,9 @@ function PlayContent() {
                         }`}
                       >
                         <div className="flex items-center gap-2">
+                          <span className="text-sm leading-none">{p.avatar || '👤'}</span>
                           <span
-                            className="w-3 h-3 rounded-full shadow"
+                            className="w-2.5 h-2.5 rounded-full shadow-sm"
                             style={{ backgroundColor: p.color }}
                           />
                           <span className="font-semibold text-slate-200 truncate max-w-[100px]">

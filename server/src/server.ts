@@ -7,6 +7,7 @@ import {
   CreateRoomSchema,
   JoinRoomSchema,
   UpdateSettingsSchema,
+  UpdateProfileSchema,
   QuickReactionSchema,
   WsEnvelope
 } from '@snakes/shared';
@@ -248,6 +249,17 @@ export function createGameServer() {
         room.setReady(meta.playerId, Boolean(payload?.ready));
         break;
       }
+
+      case 'PLAYER_UPDATE_PROFILE': {
+        if (!meta.roomCode) return;
+        const room = rooms.get(meta.roomCode);
+        if (!room) return;
+        const parsed = UpdateProfileSchema.safeParse(payload);
+        if (!parsed.success) return sendError(ws, 'INVALID_PAYLOAD', 'Invalid profile update');
+        room.updatePlayerProfile(meta.playerId, parsed.data);
+        break;
+      }
+
 
       case 'GAME_START': {
         if (!meta.roomCode) return;

@@ -230,6 +230,40 @@ export class GameRoom {
     }
   }
 
+  updatePlayerProfile(id: string, updates: { name?: string; avatar?: string; color?: string }): boolean {
+    const player = this.players.find(p => p.id === id);
+    if (!player) return false;
+
+    if (updates.name && updates.name.trim().length > 0) {
+      player.name = updates.name.trim();
+    }
+    if (updates.avatar) {
+      player.avatar = updates.avatar;
+    }
+    if (updates.color) {
+      player.color = updates.color;
+    }
+
+    if (this.state) {
+      const statePlayer = this.state.players.find(p => p.id === id);
+      if (statePlayer) {
+        if (updates.name) statePlayer.name = player.name;
+        if (updates.avatar) statePlayer.avatar = player.avatar;
+        if (updates.color) statePlayer.color = player.color;
+      }
+      this.broadcast({
+        type: 'GAME_STATE_SNAPSHOT',
+        timestamp: Date.now(),
+        payload: { state: this.state, events: this.eventLog.slice(-10) }
+      });
+    } else {
+      this.broadcastRoomUpdate();
+    }
+
+    return true;
+  }
+
+
   updateSettings(hostId: string, settings: Partial<GameSettings>): boolean {
     if (hostId !== this.hostId || this.status !== 'waiting') return false;
     this.settings = { ...this.settings, ...settings };

@@ -246,10 +246,8 @@ export const QuickReactionSchema = z.object({
   emoji: z.string().min(1).max(10)
 });
 
-// Supported quick emojis
 export const QUICK_REACTIONS = ['😂', '😱', '🎉', '😭', '🔥', '🐍', '🪜', '🚀', '💀'] as const;
 
-// Preset Color Palette (distinct 10 colors for up to 10 players)
 export const PLAYER_COLORS = [
   '#EF4444', // Red
   '#3B82F6', // Blue
@@ -263,15 +261,24 @@ export const PLAYER_COLORS = [
   '#6366F1'  // Indigo
 ] as const;
 
-export const AVATARS = [
-  'token-fox',
-  'token-dragon',
-  'token-tiger',
-  'token-frog',
-  'token-panda',
-  'token-bear',
-  'token-rabbit',
-  'token-cat',
-  'token-dog',
-  'token-owl'
+export const UpdateProfileSchema = z.object({
+  name: z.string().min(1).max(20).optional(),
+  avatar: z.string().min(1).max(30).optional(),
+  color: z.string().regex(/^#([0-9a-fA-F]{3}){1,2}$/).optional()
+});
+
+
+// Rich collection of Emoji Avatars available to all players
+export const EMOJI_AVATARS = [
+  // Animals & Beasts
+  '🦊', '🐉', '🐯', '🦁', '🐸', '🐼', '🐰', '🐱', '🐶', '🦄',
+  '🦅', '🦉', '🐺', '🐵', '🐨', '🐙', '🦈', '🦋', '🦖', '🐢',
+  // Fantasy, Sci-Fi & Magic
+  '👾', '🤖', '🧙‍♂️', '🥷', '👑', '🚀', '⚡', '🔥', '🎲', '🎯',
+  '💎', '⭐', '🌟', '🛡️', '⚔️', '🔮', '🏆', '🎮', '🛸', '👻',
+  // Expressions & Personas
+  '😎', '🥳', '🤩', '🤠', '😈', '👽', '💀', '🤡', '🍕', '🌮'
 ] as const;
+
+export const AVATARS = EMOJI_AVATARS;
+

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { RoomDTO, GameSettings, AIPersonality, PLAYER_COLORS, AVATARS } from '@snakes/shared';
+import { RoomDTO, GameSettings, AIPersonality } from '@snakes/shared';
+import { ProfileCustomizerModal } from './ProfileCustomizerModal';
 
 interface LobbyProps {
   room: RoomDTO;
@@ -9,6 +10,7 @@ interface LobbyProps {
   isHost: boolean;
   onReadyToggle: (ready: boolean) => void;
   onUpdateSettings: (settings: Partial<GameSettings>) => void;
+  onUpdateProfile: (profile: { name: string; avatar: string; color: string }) => void;
   onAddAI: (personality: AIPersonality) => void;
   onKickPlayer: (playerId: string) => void;
   onStartGame: () => void;
@@ -21,6 +23,7 @@ export const Lobby: React.FC<LobbyProps> = ({
   isHost,
   onReadyToggle,
   onUpdateSettings,
+  onUpdateProfile,
   onAddAI,
   onKickPlayer,
   onStartGame,
@@ -28,6 +31,7 @@ export const Lobby: React.FC<LobbyProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [selectedAI, setSelectedAI] = useState<AIPersonality>('casual');
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const myPlayer = room.players.find(p => p.id === myPlayerId);
   const canStart = room.players.length >= 2 && room.players.every(p => p.isReady);
@@ -49,6 +53,18 @@ export const Lobby: React.FC<LobbyProps> = ({
 
   return (
     <div className="w-full max-w-4xl mx-auto p-5 md:p-8 bg-slate-900/90 rounded-3xl border border-slate-700/60 shadow-2xl backdrop-blur-2xl">
+      {/* Profile Customizer Modal */}
+      {myPlayer && (
+        <ProfileCustomizerModal
+          isOpen={showProfileModal}
+          currentName={myPlayer.name}
+          currentAvatar={myPlayer.avatar}
+          currentColor={myPlayer.color}
+          onSave={(profile) => onUpdateProfile(profile)}
+          onClose={() => setShowProfileModal(false)}
+        />
+      )}
+
       {/* Lobby Header */}
       <div className="flex flex-col sm:flex-row items-center justify-between pb-6 border-b border-slate-800 gap-4">
         <div>
@@ -117,63 +133,89 @@ export const Lobby: React.FC<LobbyProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {room.players.map((player) => (
-              <div
-                key={player.id}
-                className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
-                  player.id === myPlayerId
-                    ? 'bg-gradient-to-r from-slate-900 to-slate-800 border-cyan-500/50 shadow-lg shadow-cyan-500/10'
-                    : 'bg-slate-950/70 border-slate-800/90'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center font-black text-white text-base shadow-lg ring-2 ring-white/30"
-                    style={{
-                      background: `radial-gradient(circle at 30% 30%, #fff, ${player.color} 70%, #000 100%)`
-                    }}
-                  >
-                    {player.name.charAt(0).toUpperCase()}
+            {room.players.map((player) => {
+              const isMe = player.id === myPlayerId;
+
+              return (
+                <div
+                  key={player.id}
+                  className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                    isMe
+                      ? 'bg-gradient-to-r from-slate-900 to-slate-800 border-cyan-500/50 shadow-lg shadow-cyan-500/10'
+                      : 'bg-slate-950/70 border-slate-800/90'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-11 h-11 rounded-full flex items-center justify-center font-black text-white text-xl shadow-lg ring-2 ring-white/30"
+                      style={{
+                        background: `radial-gradient(circle at 30% 30%, #fff, ${player.color} 70%, #000 100%)`
+                      }}
+                    >
+                      <span className="drop-shadow-md">
+                        {player.avatar && player.avatar.length <= 6
+                          ? player.avatar
+                          : player.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-white truncate max-w-[120px]">
+                          {player.name}
+                        </span>
+                        {player.isHost && (
+                          <span className="text-amber-400 text-xs" title="Room Host">
+                            👑
+                          </span>
+                        )}
+                        {player.isAI && (
+                          <span className="text-[10px] px-1.5 py-0.2 bg-purple-500/20 text-purple-300 rounded font-mono font-semibold">
+                            AI
+                          </span>
+                        )}
+                        {isMe && (
+                          <span className="text-[10px] px-1.5 py-0.2 bg-cyan-500/20 text-cyan-300 rounded font-mono font-bold">
+                            YOU
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] mt-0.5">
+                        {player.isReady ? (
+                          <span className="text-emerald-400 font-bold">✓ Ready</span>
+                        ) : (
+                          <span className="text-amber-400/80 font-medium">○ Waiting...</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-white truncate max-w-[120px]">
-                        {player.name}
-                      </span>
-                      {player.isHost && (
-                        <span className="text-amber-400 text-xs" title="Room Host">
-                          👑
-                        </span>
-                      )}
-                      {player.isAI && (
-                        <span className="text-[10px] px-1.5 py-0.2 bg-purple-500/20 text-purple-300 rounded font-mono font-semibold">
-                          AI
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[11px] mt-0.5">
-                      {player.isReady ? (
-                        <span className="text-emerald-400 font-bold">✓ Ready</span>
-                      ) : (
-                        <span className="text-amber-400/80 font-medium">○ Waiting...</span>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-1.5">
+                    {/* Edit Profile button for user */}
+                    {isMe && (
+                      <button
+                        onClick={() => setShowProfileModal(true)}
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold border border-slate-700 shadow-sm transition-colors"
+                        title="Change Name & Avatar"
+                      >
+                        ✏️ Edit
+                      </button>
+                    )}
+
+                    {/* Kick player (Host only) */}
+                    {isHost && !player.isHost && (
+                      <button
+                        onClick={() => onKickPlayer(player.id)}
+                        className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 text-xs transition-colors"
+                        title="Remove Player"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                {/* Kick player (Host only) */}
-                {isHost && !player.isHost && (
-                  <button
-                    onClick={() => onKickPlayer(player.id)}
-                    className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 text-xs transition-colors"
-                    title="Remove Player"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Action Bar */}

@@ -379,8 +379,10 @@ export const Board: React.FC<BoardProps> = ({
                       }}
                       title={`${player.name} (Tile ${pos})${player.hasShield ? ' 🛡️ Shielded' : ''}`}
                     >
-                      <span className="drop-shadow-md">
-                        {player.name.charAt(0).toUpperCase()}
+                      <span className="drop-shadow-md flex items-center justify-center leading-none">
+                        {player.avatar && player.avatar.length <= 6
+                          ? player.avatar
+                          : player.name.charAt(0).toUpperCase()}
                       </span>
 
                       {player.hasShield && (
@@ -410,9 +412,11 @@ export const Board: React.FC<BoardProps> = ({
                   background: `linear-gradient(135deg, ${player.color}, rgba(0,0,0,0.6))`
                 }}
               >
+                {player.avatar && <span>{player.avatar}</span>}
                 <span>{player.name}</span>
                 {player.id === activePlayerId && <span className="animate-ping text-[8px]">●</span>}
               </div>
+
             ))}
           </div>
         </div>

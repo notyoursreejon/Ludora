@@ -1,14 +1,40 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { sound } from '@/lib/sound';
-import { PLAYER_COLORS, AVATARS } from '@snakes/shared';
+import { PLAYER_COLORS, EMOJI_AVATARS } from '@snakes/shared';
+import { ProfileCustomizerModal } from '@/components/ProfileCustomizerModal';
 
 export default function HomePage() {
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [selectedColor, setSelectedColor] = useState<string>(PLAYER_COLORS[0]);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [playerName, setPlayerName] = useState('Player 1');
+  const [playerAvatar, setPlayerAvatar] = useState<string>(EMOJI_AVATARS[0]);
+  const [playerColor, setPlayerColor] = useState<string>(PLAYER_COLORS[0]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem('snakes_player_name');
+      const savedAvatar = localStorage.getItem('snakes_player_avatar');
+      const savedColor = localStorage.getItem('snakes_player_color');
+      if (savedName) setPlayerName(savedName);
+      if (savedAvatar) setPlayerAvatar(savedAvatar);
+      if (savedColor) setPlayerColor(savedColor);
+    }
+  }, []);
+
+  const handleSaveProfile = (profile: { name: string; avatar: string; color: string }) => {
+    setPlayerName(profile.name);
+    setPlayerAvatar(profile.avatar);
+    setPlayerColor(profile.color);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('snakes_player_name', profile.name);
+      localStorage.setItem('snakes_player_avatar', profile.avatar);
+      localStorage.setItem('snakes_player_color', profile.color);
+    }
+  };
 
   return (
     <main className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-emerald-500 relative overflow-hidden">
@@ -56,10 +82,46 @@ export default function HomePage() {
           </span>
         </h1>
 
-        <p className="text-sm sm:text-base text-slate-400 max-w-2xl mb-10 leading-relaxed">
+        <p className="text-sm sm:text-base text-slate-400 max-w-2xl mb-6 leading-relaxed">
           Climb radiant ladders, survive serpent drop-offs, trigger dynamic adventure tiles,
           or test your mettle against 5 distinct AI personalities.
         </p>
+
+        {/* Player Profile Quick Customizer Widget */}
+        <div className="mb-10 inline-flex items-center gap-3 p-2 pr-4 bg-slate-900/90 border border-slate-700/80 rounded-2xl shadow-xl backdrop-blur-xl hover:border-cyan-500/50 transition-all">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-md ring-2 ring-white/30"
+            style={{
+              background: `radial-gradient(circle at 30% 30%, #fff, ${playerColor} 70%, #000 100%)`
+            }}
+          >
+            <span className="drop-shadow">{playerAvatar}</span>
+          </div>
+          <div className="text-left">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+              Playing as
+            </span>
+            <span className="text-sm font-black text-white">
+              {playerName}
+            </span>
+          </div>
+          <button
+            onClick={() => setShowProfileModal(true)}
+            className="ml-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold border border-slate-700 transition-colors"
+          >
+            ✏️ Change
+          </button>
+        </div>
+
+        {/* Profile Customizer Modal */}
+        <ProfileCustomizerModal
+          isOpen={showProfileModal}
+          currentName={playerName}
+          currentAvatar={playerAvatar}
+          currentColor={playerColor}
+          onSave={handleSaveProfile}
+          onClose={() => setShowProfileModal(false)}
+        />
 
         {/* Primary Action Modes Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-3xl mb-8">
