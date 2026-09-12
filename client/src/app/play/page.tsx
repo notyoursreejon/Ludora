@@ -472,32 +472,36 @@ function PlayContent() {
       )}
 
       {/* Top App Header */}
-      <header className="h-14 border-b border-slate-800 bg-slate-950/80 px-4 flex items-center justify-between">
+      <header className="h-16 border-b border-slate-800/80 bg-slate-950/70 px-4 md:px-6 flex items-center justify-between backdrop-blur-xl sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/')}
-            className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-semibold"
+            className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 font-bold transition-colors px-2.5 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800"
           >
             ← Home
           </button>
           <span className="text-slate-700">|</span>
-          <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-            {isOnline ? `Room: ${room?.code || 'Connecting...'}` : modeParam === 'ai' ? '🤖 Play vs AI' : '👥 Pass & Play'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span className="text-xs font-black text-slate-200 uppercase tracking-wider">
+              {isOnline ? `Room: ${room?.code || 'Connecting...'}` : modeParam === 'ai' ? '🤖 Play vs AI' : '👥 Pass & Play'}
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {eventLog.length > 0 && (
             <button
               onClick={() => setShowReplay(true)}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg border border-slate-700"
+              className="px-3 py-1.5 bg-slate-900/80 hover:bg-slate-800 text-slate-200 text-xs font-bold rounded-xl border border-slate-700/60 shadow-sm transition-all flex items-center gap-1"
             >
-              📼 Replay
+              <span>📼</span> Replay ({eventLog.length})
             </button>
           )}
           <button
             onClick={() => sound.toggleSound()}
-            className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs"
+            className="p-2 rounded-xl bg-slate-900/80 border border-slate-700/60 text-slate-300 hover:text-white text-xs font-bold transition-colors"
+            title="Toggle Web Audio"
           >
             🔊
           </button>
@@ -506,6 +510,28 @@ function PlayContent() {
 
       {/* Main Play View */}
       <main className="flex-1 flex flex-col items-center justify-center p-3 md:p-6 max-w-6xl mx-auto w-full">
+        {/* Latest Event Live Ticker */}
+        {eventLog.length > 0 && gameState?.status === 'in_progress' && (
+          <div className="mb-4 px-4 py-1.5 bg-slate-900/80 border border-slate-700/60 rounded-full shadow-lg backdrop-blur-md text-xs text-amber-300 font-semibold flex items-center gap-2 animate-fadeIn">
+            <span className="text-sm">📢</span>
+            <span>
+              {(() => {
+                const lastEv = eventLog[eventLog.length - 1];
+                const p = gameState?.players.find(pl => pl.id === (lastEv as any).playerId);
+                const name = p?.name || 'Player';
+                if (lastEv.type === 'ROLL_RESULT') return `${name} rolled a ${lastEv.totalRoll}!`;
+                if (lastEv.type === 'LADDER_TRIGGERED') return `🪜 ${name} climbed a ladder to tile ${lastEv.ladderTop}!`;
+                if (lastEv.type === 'SNAKE_TRIGGERED') {
+                  return lastEv.absorbedByShield
+                    ? `🛡️ Snake bite absorbed by shield for ${name}!`
+                    : `🐍 ${name} slid down a snake to tile ${lastEv.snakeTail}!`;
+                }
+                if (lastEv.type === 'SPECIAL_TILE_TRIGGERED') return `✨ ${name}: ${lastEv.details}`;
+                return `${name} completed turn.`;
+              })()}
+            </span>
+          </div>
+        )}
         {/* If in Online Lobby */}
         {isOnline && room && room.status === 'waiting' ? (
           <Lobby
