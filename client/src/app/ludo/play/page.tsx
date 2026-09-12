@@ -304,7 +304,7 @@ function LudoPlayContent() {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-white">
         <div className="text-4xl animate-bounce mb-3">🎲</div>
-        <div className="text-sm font-bold text-slate-400">Connecting to Ludo arena...</div>
+        <div className="text-sm font-bold text-slate-400">Connecting to Ludora Arena...</div>
       </div>
     );
   }

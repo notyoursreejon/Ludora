@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Snakes & Ladders Online | Modern Multiplayer',
-  description: 'Play modern multiplayer Snakes & Ladders online with friends, vs AI, or in local pass-and-play.',
+  title: 'Ludora | Modern Multiplayer Ludo & Board Games',
+  description: 'Play modern multiplayer Ludo (2 to 10 players) and Snakes & Ladders online with friends, vs AI, or in local pass-and-play.',
 };
 
 export default function RootLayout({

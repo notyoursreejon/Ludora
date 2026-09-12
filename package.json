@@ -1,8 +1,8 @@
 {
-  "name": "multiplayer-snakes-and-ladders",
+  "name": "ludora",
   "version": "1.0.0",
   "private": true,
-  "description": "Modern Multiplayer Snakes & Ladders Game",
+  "description": "Ludora: Modern Online Multiplayer Ludo & Classic Board Games Platform",
   "workspaces": [
     "packages/*",
     "server",

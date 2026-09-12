@@ -1,6 +1,10 @@
-# 🐍🎲 Modern Multiplayer Snakes & Ladders
+# 🎲👑 Ludora: Modern Online Multiplayer Ludo & Board Games Platform
 
-A modern, responsive, server-authoritative Snakes & Ladders web application supporting **2 to 10 players**, single-player vs AI opponents with 5 distinct personalities, local pass-and-play, private rooms with shareable codes, real-time WebSockets synchronization, Web Audio API sound synthesis, and full match replays.
+**Ludora** is a production-quality, responsive, server-authoritative multiplayer board game platform supporting **2 to 10 players**, single-player vs AI opponents with multiple heuristics and difficulty levels, private rooms with 6-character codes, shareable links, real-time WebSockets synchronization, Battle Ludo power-up mechanics, Web Audio API sound synthesis, and full match replays.
+
+### Available Games:
+1. **Ludo Arena (`/ludo`)**: Classic 15x15 (2-4 players) & Mega Extended (5-10 players) Ludo, Battle Mode power-ups, safe stars, and exact finish rules.
+2. **Snakes & Ladders (`/`)**: Classic 100 & Speed 50 boards with adventure tiles and 3D token physics.
 
 ---
 

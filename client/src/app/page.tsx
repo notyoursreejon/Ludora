@@ -48,7 +48,7 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <span className="text-2xl drop-shadow-[0_0_12px_rgba(34,197,94,0.6)]">🐍</span>
             <span className="font-black text-lg tracking-tight bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-              SNAKES & LADDERS
+              LUDORA · SNAKES & LADDERS
             </span>
           </div>
 
@@ -57,7 +57,7 @@ export default function HomePage() {
               href="/ludo"
               className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black transition-all shadow-md flex items-center gap-1.5"
             >
-              <span>🎲 Play Ludo</span>
+              <span>🎲 Play Ludora (Ludo)</span>
             </Link>
             <button
               onClick={() => sound.toggleSound()}
