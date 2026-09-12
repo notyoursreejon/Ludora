@@ -53,6 +53,12 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            <Link
+              href="/ludo"
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black transition-all shadow-md flex items-center gap-1.5"
+            >
+              <span>🎲 Play Ludo</span>
+            </Link>
             <button
               onClick={() => sound.toggleSound()}
               className="px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-700/60 text-slate-300 hover:text-white text-xs font-semibold backdrop-blur transition-colors"
